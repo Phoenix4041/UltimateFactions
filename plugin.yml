@@ -1,16 +1,38 @@
 name: UltimateFactions
-main: Phoenix\ultimate\Main
+main: Phoenix\ultimatefactions\Main
 api: 5.0.0
-version: 1.2.0
+version: 1.0.0
 author: "Phoenix"
+description: "Ultimate Factions plugin with power-based progression system"
 softdepend: ["BedrockEconomy", "EconomyAPI"]
 virions: ["libPiggyEconomy", "libasynql"]
 
 permissions:
-  factions.command:
-    description: "Allows you to use the /f command"
+  ultimatefactions.command:
+    description: "Allows you to use the /uf command"
     default: true
-  faction.command.admin:
+  ultimatefactions.command.admin:
     description: "This permission is only for administrators"
     default: op
-    
+  ultimatefactions.bypass:
+    description: "Bypass faction protection and limits"
+    default: op
+  ultimatefactions.ally.unlimited:
+    description: "Create unlimited alliances"
+    default: op
+  ultimatefactions.members.unlimited:
+    description: "Have unlimited members in faction"
+    default: op
+  ultimatefactions.claims.unlimited:
+    description: "Make unlimited claims"
+    default: op
+
+commands:
+  ultimatefactions:
+    description: "Main UltimateFactions command"
+    aliases: ["uf", "factions", "f"]
+    permission: ultimatefactions.command
+  ultimatefactionsadmin:
+    description: "UltimateFactions admin commands"
+    aliases: ["ufa", "factionsadmin", "fa"]
+    permission: ultimatefactions.command.admin
