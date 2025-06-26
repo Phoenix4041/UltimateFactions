@@ -1,0 +1,16 @@
+name: UltimateFactions
+main: Phoenix\ultimate\Main
+api: 5.0.0
+version: 1.2.0
+author: "Phoenix"
+softdepend: ["BedrockEconomy", "EconomyAPI"]
+virions: ["libPiggyEconomy", "libasynql"]
+
+permissions:
+  factions.command:
+    description: "Allows you to use the /f command"
+    default: true
+  faction.command.admin:
+    description: "This permission is only for administrators"
+    default: op
+    
