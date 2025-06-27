@@ -1,0 +1,243 @@
+# UltimateFactions Messages Configuration
+# Available placeholders:
+# {PREFIX} - Server prefix
+# {PLAYER} - Player name
+# {FACTION} - Faction name
+# {MEMBER} - Member name
+# {POWER} - Current power
+# {MAXPOWER} - Maximum power
+# {ROLE} - Player role
+# {TIME} - Time value
+# {MONEY} - Money amount
+# {WORLD} - World name
+# {X}, {Y}, {Z} - Coordinates
+
+# === GENERAL MESSAGES ===
+prefix: "&7[&6UltimateFactions&7]"
+no_permission: "&cYou don't have permission to use this command!"
+player_only: "&cThis command can only be used by players!"
+console_only: "&cThis command can only be used from console!"
+unknown_command: "&cUnknown command! Use &e/uf help &cfor available commands."
+reload_success: "&aUltimateFactions configuration reloaded successfully!"
+
+# === PLAYER ERRORS ===
+player_error_database: "&cError loading player database!"
+player_not_online: "&cPlayer &e{PLAYER} &cis not online!"
+player_not_found: "&cPlayer &e{PLAYER} &cnot found!"
+player_choose_yourself: "&cYou can't choose yourself!"
+player_command_cooldown: "&cYou can't use this command for &e{TIME}&c!"
+
+# === PLAYER STATUS ===
+player_already_faction: "&cPlayer &e{PLAYER} &cis already in a faction!"
+player_already_faction_self: "&cYou are already in a faction!"
+player_no_faction: "&cPlayer &e{PLAYER} &cis not in a faction!"
+player_no_faction_self: "&cYou are not in a faction!"
+player_not_in_your_faction: "&cPlayer &e{PLAYER} &cis not in your faction!"
+
+# === INVITATIONS ===
+player_send_invitation: "&aYou sent an invitation to &e{MEMBER} &ato join your faction!"
+player_already_invitation: "&cPlayer &e{PLAYER} &calready has a pending invitation!"
+player_no_invites: "&cYou have no pending invitations!"
+player_received_invitation: "&e{PLAYER} &asent you an invitation to join faction &6{FACTION}&a!"
+invite_expired: "&cThe invitation has expired!"
+invite_accepted: "&aYou successfully joined faction &6{FACTION}&a!"
+invite_declined: "&cYou declined the invitation to join &e{FACTION}&c!"
+
+# === FACTION CREATION/MANAGEMENT ===
+faction_already_exists: "&cFaction &e{FACTION} &calready exists!"
+faction_not_exists: "&cFaction &e{FACTION} &cdoes not exist!"
+faction_name_short: "&cFaction name is too short! Minimum length: &e{MIN}&c characters."
+faction_name_long: "&cFaction name is too long! Maximum length: &e{MAX}&c characters."
+faction_name_not_available: "&cFaction name &e{FACTION} &cis not available!"
+faction_invalid_world: "&cYou can't perform this action in world &e{WORLD}&c!"
+faction_create_success: "&aFaction &6{FACTION} &acreated successfully!"
+faction_create_broadcast: "{PREFIX} &e{PLAYER} &acreated faction &6{FACTION}&a!"
+faction_disband_success: "&cFaction &6{FACTION} &cdisbanded successfully!"
+faction_disband_broadcast: "{PREFIX} &e{PLAYER} &cdisbanded faction &6{FACTION}&c!"
+
+# === POWER SYSTEM MESSAGES ===
+power_insufficient_members: "&cInsufficient power! You need &e{REQUIRED} &cpower to have &e{MEMBERS} &cmembers. Current power: &e{CURRENT}"
+power_insufficient_allies: "&cInsufficient power! You need &e{REQUIRED} &cpower for this ally slot. Current power: &e{CURRENT}"
+power_insufficient_claims: "&cInsufficient power! You need &e{REQUIRED} &cpower to make more claims. Current power: &e{CURRENT}"
+power_gain_kill: "&aYour faction gained &e{POWER} &apower from a kill! Total: &e{TOTAL}"
+power_lost_death: "&cYour faction lost &e{POWER} &cpower from a death! Total: &e{TOTAL}"
+power_frozen: "&cYour faction power is frozen for &e{TIME}&c!"
+power_max_reached: "&eYour faction has reached maximum power!"
+
+# === MEMBER MANAGEMENT ===
+faction_join_player: "{PREFIX} &e{MEMBER} &ajoined the faction!"
+faction_leave_player: "{PREFIX} &e{MEMBER} &cleft the faction!"
+faction_leave_success: "&aYou successfully left faction &6{FACTION}&a!"
+faction_transfer_player: "{PREFIX} &e{PLAYER} &atransferred faction leadership to &e{MEMBER}&a!"
+faction_transfer_success: "&aYou transferred faction leadership to &e{MEMBER}&a!"
+faction_kick_player: "{PREFIX} &e{MEMBER} &cwas kicked from the faction!"
+faction_kick_success: "&aYou kicked &e{MEMBER} &afrom the faction!"
+faction_full_members: "&cFaction has reached the member limit! Need more power to add members."
+
+# === ROLES ===
+role_only_leader: "&cThis action is only available to the faction leader!"
+role_only_leader_officer: "&cThis action is only available to leaders and officers!"
+role_cant_leave: "&cYou can't leave the faction as leader! Transfer leadership first."
+role_cant_kicked: "&cThis player cannot be kicked!"
+role_already_officer: "&cPlayer &e{PLAYER} &cis already an officer!"
+role_already_member: "&cPlayer &e{PLAYER} &cis already a member!"
+role_new_officer: "{PREFIX} &e{MEMBER} &ais now an officer!"
+role_new_member: "{PREFIX} &e{MEMBER} &ais now a member!"
+role_promoted: "&aYou have been promoted to &e{ROLE}&a!"
+role_demoted: "&cYou have been demoted to &e{ROLE}&c!"
+
+# === HOME SYSTEM ===
+faction_home_not_exists: "&cFaction home is not set!"
+faction_home_already_exists: "&cFaction home already exists! Use &e/uf delhome &cfirst."
+faction_home_set: "&aFaction home set successfully!"
+faction_home_unset: "&cFaction home removed successfully!"
+faction_home_teleport: "&aTeleporting to faction home..."
+faction_home_teleport_success: "&aSuccessfully teleported to faction home!"
+faction_home_cooldown: "&cYou must wait &e{TIME} &cbefore teleporting again!"
+
+# === CHAT SYSTEM ===
+faction_chat_enabled: "&aFaction chat mode &eenabled&a!"
+faction_chat_disabled: "&cFaction chat mode &edisabled&c!"
+ally_chat_enabled: "&aAlly chat mode &eenabled&a!"
+ally_chat_disabled: "&cAlly chat mode &edisabled&c!"
+public_chat_enabled: "&aPublic chat mode &eenabled&a!"
+faction_chat_message: "&f[&6{FACTION}&f] [&6{ROLE}&f] &e{MEMBER}&f: &r{MESSAGE}"
+ally_chat_message: "&f[&bALLY&f] [&b{FACTION}&f] [&b{ROLE}&f] &e{MEMBER}&f: &r{MESSAGE}"
+
+# === CLAIMS SYSTEM ===
+claim_cant_use_area: "&cYou can't build in this area!"
+claim_no_chunks_area: "&cThere are no claimed chunks in this area!"
+claim_chunk_already_claimed: "&cThis chunk is already claimed by &e{FACTION}&c!"
+claim_not_belong: "&cThis chunk doesn't belong to your faction!"
+claim_enough_money: "&cYou need &e${PRICE} &cto claim this chunk!"
+claim_reached_limit: "&cYour faction has reached the maximum number of claims!"
+claim_power_insufficient: "&cInsufficient power to claim! Need &e{REQUIRED} &cpower for &e{CLAIMS} &cclaims."
+claim_empty_chunks: "&cYour faction doesn't have any claimed chunks!"
+claim_spawn_distance_not_allowed: "&cYou can only claim &e{DISTANCE} &cblocks away from spawn!"
+claim_set_successfully: "&aChunk claimed successfully! (&e{X}&a, &e{Z}&a)"
+claim_unset_successfully: "&cChunk unclaimed successfully! (&e{X}&a, &e{Z}&a)"
+claim_enter_zone: "&9Entering &e{FACTION} &9territory"
+claim_leaving_zone: "&9Leaving &e{FACTION} &9territory"
+claim_auto_enabled: "&aAuto-claim enabled!"
+claim_auto_disabled: "&cAuto-claim disabled!"
+
+# === ALLY SYSTEM ===
+ally_send_invitation: "&aYou sent an alliance request to faction &e{FACTION}&a!"
+ally_already_invitation: "&cFaction &e{FACTION} &calready has a pending alliance request!"
+ally_no_invites: "&cYou have no alliance invitations!"
+ally_received_invitation: "&aReceived alliance request from faction &e{FACTION}&a!"
+ally_accept_invitation: "&aAlliance with faction &e{FACTION} &aaccepted!"
+ally_accept_broadcast: "&aFaction &e{FACTION} &aaccepted your alliance request!"
+ally_not_exists: "&cNo alliance exists with faction &e{FACTION}&c!"
+ally_reach_limit: "&cFaction &e{FACTION} &chas reached the maximum alliance limit!"
+ally_reach_limit_self: "&cYour faction has reached the maximum alliance limit!"
+ally_power_insufficient: "&cInsufficient power for alliance! Need &e{REQUIRED} &cpower."
+ally_remove_faction: "&cFaction &e{FACTION} &cremoved the alliance with your faction!"
+ally_remove_success: "&cAlliance with faction &e{FACTION} &cremoved!"
+ally_choose_own: "&cYou can't ally with your own faction!"
+
+# === ECONOMY ===
+economy_not_enough_money: "&cYou don't have enough money! Need: &e${AMOUNT}"
+economy_faction_not_enough: "&cFaction doesn't have enough money! Need: &e${AMOUNT}"
+bank_add_money: "&e${MONEY} &adeposited into faction bank!"
+bank_withdraw_money: "&e${MONEY} &awithdrawn from faction bank!"
+bank_status_money: "&aFaction bank balance: &e${MONEY}"
+
+# === ADMIN COMMANDS ===
+admin_add_power: "{PREFIX} Added &e{POWER} &apower to faction &e{FACTION}&a!"
+admin_reduce_power: "{PREFIX} Reduced &e{POWER} &cpower from faction &e{FACTION}&c!"
+admin_set_power: "{PREFIX} Set faction &e{FACTION} &apower to &e{POWER}&a!"
+admin_add_money: "{PREFIX} Added &e${MONEY} &ato faction &e{FACTION}&a!"
+admin_reduce_money: "{PREFIX} Reduced &e${MONEY} &cfrom faction &e{FACTION}&c!"
+admin_set_money: "{PREFIX} Set faction &e{FACTION} &amoney to &e${MONEY}&a!"
+admin_delete_faction: "{PREFIX} Faction &e{FACTION} &cdeleted successfully!"
+admin_delete_allfactions: "{PREFIX} &eAll factions deleted! Server restart recommended."
+admin_delete_claim: "{PREFIX} Claim deleted successfully!"
+admin_bypass_enabled: "&aAdmin bypass mode &eenabled&a!"
+admin_bypass_disabled: "&cAdmin bypass mode &edisabled&c!"
+
+# === FACTION INFO ===
+faction_info_header: "&8&m----------&r &6Faction {FACTION} &8&m----------"
+faction_info_display_name: "&6Display Name: &e{DISPLAYNAME}"
+faction_info_description: "&6Description: &e{DESCRIPTION}"
+faction_info_leader: "&6Leader: &e{LEADER}"
+faction_info_created: "&6Created: &e{CREATIONDATE}"
+faction_info_power: "&6Power: &e{POWER}&7/&e{MAXPOWER}"
+faction_info_members: "&6Members (&e{MEMBERCOUNT}&6): &e{MEMBERS}"
+faction_info_officers: "&6Officers: &e{OFFICERS}"
+faction_info_allies: "&6Allies (&e{ALLYCOUNT}&6): &e{ALLIES}"
+faction_info_claims: "&6Claims: &e{CLAIMS}"
+faction_info_kills: "&6Kills: &e{KILLS}"
+faction_info_deaths: "&6Deaths: &e{DEATHS}"
+faction_info_bank: "&6Bank: &e${BALANCE}"
+faction_info_home: "&6Home: &e{HOME}"
+faction_info_freeze: "&6Power Freeze: &e{FREEZE}"
+faction_info_footer: "&8&m--------------------------------"
+
+# === FACTION LIST ===
+faction_list_header: "&8&m----------&r &6Faction List &8&m----------"
+faction_list_entry: "&e{RANK}&7. &6{FACTION} &7- &ePower: {POWER} &7- &eMembers: {MEMBERS}"
+faction_list_footer: "&8&m------------------------------"
+faction_list_empty: "&cNo factions exist!"
+
+# === TOP FACTIONS ===
+faction_top_header: "&8&m----------&r &6Top Factions &8&m----------"
+faction_top_power: "&e{RANK}&7. &6{FACTION} &7- &ePower: {POWER}"
+faction_top_members: "&e{RANK}&7. &6{FACTION} &7- &eMembers: {MEMBERS}"
+faction_top_kills: "&e{RANK}&7. &6{FACTION} &7- &eKills: {KILLS}"
+faction_top_money: "&e{RANK}&7. &6{FACTION} &7- &eBank: ${MONEY}"
+
+# === HELP MESSAGES ===
+help_header: "&8&m----------&r &6UltimateFactions Help &8&m----------"
+help_create: "&e/uf create <name> &7- Create a new faction"
+help_disband: "&e/uf disband &7- Disband your faction"
+help_join: "&e/uf join <faction> &7- Join a faction"
+help_leave: "&e/uf leave &7- Leave your faction"
+help_invite: "&e/uf invite <player> &7- Invite a player"
+help_kick: "&e/uf kick <player> &7- Kick a player"
+help_promote: "&e/uf promote <player> &7- Promote to officer"
+help_demote: "&e/uf demote <player> &7- Demote to member"
+help_transfer: "&e/uf transfer <player> &7- Transfer leadership"
+help_info: "&e/uf info [faction] &7- Show faction info"
+help_list: "&e/uf list &7- List all factions"
+help_top: "&e/uf top [power/members/kills/money] &7- Top factions"
+help_home: "&e/uf home &7- Teleport to faction home"
+help_sethome: "&e/uf sethome &7- Set faction home"
+help_delhome: "&e/uf delhome &7- Delete faction home"
+help_claim: "&e/uf claim &7- Claim current chunk"
+help_unclaim: "&e/uf unclaim &7- Unclaim current chunk"
+help_autoclaim: "&e/uf autoclaim &7- Toggle auto-claim"
+help_ally: "&e/uf ally <faction> &7- Send alliance request"
+help_unally: "&e/uf unally <faction> &7- Remove alliance"
+help_chat: "&e/uf chat [faction/ally/public] &7- Change chat mode"
+help_bank: "&e/uf bank [deposit/withdraw/balance] &7- Faction bank"
+help_footer: "&8&m----------------------------------------"
+
+# === POWER REQUIREMENTS INFO ===
+power_info_header: "&8&m----------&r &6Power Requirements &8&m----------"
+power_info_members: "&6Members: &e1 power = 1 member slot"
+power_info_allies: "&6First Ally: &e{FIRST_ALLY} power"
+power_info_ally_increment: "&6Additional Allies: &e+{INCREMENT} power each"
+power_info_claims: "&6Claims: &e{CLAIMS_PER_POWER} power = 1 claim"
+power_info_current: "&6Your Power: &e{CURRENT}&7/&e{MAX}"
+power_info_footer: "&8&m--------------------------------"
+
+# === FREEZE/RAID MESSAGES ===
+faction_raid_message: "&cYour faction will not gain power for &e{TIME}&c!"
+faction_raid_title: "&l&cRAIDED!"
+faction_raid_subtitle: "&7Your faction is now raidable!"
+faction_raidable: "&cFaction &e{FACTION} &cis now raidable!"
+faction_raid_protection: "&aYour faction is protected from raids!"
+
+# === CHUNK BORDER ===
+chunk_border_enabled: "&aChunk borders are now &evisible&a!"
+chunk_border_disabled: "&cChunk borders are now &ehidden&c!"
+
+# === MAP ===
+map_header: "&8&m----------&r &6Faction Map &8&m----------"
+map_legend_your: "&aYour faction"
+map_legend_ally: "&bAlly faction"
+map_legend_enemy: "&cEnemy faction"
+map_legend_neutral: "&7Neutral faction"
+map_legend_wilderness: "&8Wilderness"
+map_current_location: "&6Current location: &e{X}&7, &e{Z}"
