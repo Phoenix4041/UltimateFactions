@@ -24,6 +24,8 @@ use Phoenix\ultimatefactions\listeners\PlayerListener;
 use Phoenix\ultimatefactions\listeners\BlockListener;
 use Phoenix\ultimatefactions\listeners\EntityListener;
 use Phoenix\ultimatefactions\listeners\ChatListener;
+use Phoenix\ultimatefactions\addons\scorehud\ScoreHudListener;
+use Phoenix\ultimatefactions\addons\scorehud\ScoreHudManager;
 use Phoenix\ultimatefactions\managers\FactionManager;
 use Phoenix\ultimatefactions\managers\PlayerManager;
 use Phoenix\ultimatefactions\managers\ClaimManager;
@@ -45,6 +47,7 @@ class Main extends PluginBase {
     private ClaimManager $claimManager;
     private PowerManager $powerManager;
     private CooldownManager $cooldownManager;
+    private ?ScoreHudManager $scoreHudManager = null;
     
     private array $borderPlayers = [];
     private bool $crashed = false;
@@ -154,6 +157,9 @@ class Main extends PluginBase {
         $this->playerManager = new PlayerManager($this);
         $this->factionManager = new FactionManager($this);
         
+        // Initialize ScoreHud if available
+        $this->scoreHudManager = ScoreHudManager::getInstance();
+        
         // Initialize managers with database
         $this->factionManager->init();
         $this->playerManager->init();
@@ -174,6 +180,14 @@ class Main extends PluginBase {
         $pluginManager->registerEvents(new BlockListener($this), $this);
         $pluginManager->registerEvents(new EntityListener($this), $this);
         $pluginManager->registerEvents(new ChatListener($this), $this);
+        
+        // Register ScoreHud listener if ScoreHud is available
+        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+            $pluginManager->registerEvents(new ScoreHudListener(), $this);
+            $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
+        } else {
+            $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found or incompatible version. ScoreHud integration disabled.");
+        }
     }
     
     private function startTasks(): void {
@@ -208,6 +222,16 @@ class Main extends PluginBase {
             }),
             20 * 60 * 10 // Every 10 minutes
         );
+        
+        // Task to update ScoreHud tags for all online players
+        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+            $this->getScheduler()->scheduleRepeatingTask(
+                new ClosureTask(function(): void {
+                    $this->updateAllPlayersScoreHud();
+                }),
+                20 * 30 // Every 30 seconds
+            );
+        }
     }
     
     private function updateFactionFreezeStatus(): void {
@@ -225,6 +249,16 @@ class Main extends PluginBase {
                     $faction->broadcastMessage($message);
                     
                     $this->factionManager->updateFaction($faction);
+                    
+                    // Update ScoreHud for faction members
+                    if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+                        foreach ($faction->getMembers() as $memberName) {
+                            $player = $this->getServer()->getPlayerExact($memberName);
+                            if ($player instanceof Player && $player->isOnline()) {
+                                $this->scoreHudManager->updatePlayerFactionFreezeTimeTag($player, null);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -241,6 +275,16 @@ class Main extends PluginBase {
             }
             
             $this->showChunkBorder($player);
+        }
+    }
+    
+    private function updateAllPlayersScoreHud(): void {
+        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
+            return;
+        }
+        
+        foreach ($this->getServer()->getOnlinePlayers() as $player) {
+            $this->scoreHudManager->updateAllPlayerTags($player);
         }
     }
     
@@ -315,6 +359,29 @@ class Main extends PluginBase {
         $this->messageManager->reload();
     }
     
+    // Methods for updating ScoreHud when actions occur
+    public function updatePlayerScoreHud(Player $player): void {
+        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+            $this->scoreHudManager->updateAllPlayerTags($player);
+        }
+    }
+    
+    public function updateFactionMembersScoreHud(string $factionName): void {
+        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
+            return;
+        }
+        
+        $faction = $this->factionManager->getFactionByName($factionName);
+        if ($faction === null) return;
+        
+        foreach ($faction->getMembers() as $memberName) {
+            $player = $this->getServer()->getPlayerExact($memberName);
+            if ($player instanceof Player && $player->isOnline()) {
+                $this->scoreHudManager->updateAllPlayerTags($player);
+            }
+        }
+    }
+    
     // Getters
     public static function getInstance(): Main {
         return self::$instance;
@@ -354,6 +421,10 @@ class Main extends PluginBase {
     
     public function getCooldownManager(): CooldownManager {
         return $this->cooldownManager;
+    }
+    
+    public function getScoreHudManager(): ?ScoreHudManager {
+        return $this->scoreHudManager;
     }
     
     // Chunk border management
