@@ -1,0 +1,140 @@
+# UltimateFactions config by Phoenix
+# Advanced power-based progression system
+
+# Server prefix
+server_prefix: "&7[&6UltimateFactions&7]"
+
+# Set Economy Plugin to use availables (bedrockeconomy or economyapi)
+economy:
+  provider: economyapi
+
+# Faction name configuration
+faction_name:
+  min_length: 3
+  max_length: 16
+  # Banned faction names
+  banned_names: ["op", "owner", "staff", "admin", "mod", "helper", "console", "server"]
+
+# === POWER SYSTEM CONFIGURATION ===
+power_system:
+  # Initial power when creating faction
+  default_power: 2
+  
+  # Maximum power a faction can have
+  max_power: 100
+  
+  # Power gained per kill and lost per death
+  power_gain_per_kill: 1
+  power_lost_per_death: 2
+  
+  # Power requirements for different features
+  requirements:
+    # Members (including leader): power needed for each member slot
+    members_per_power: 1  # 2 power = 2 members, 4 power = 4 members, etc.
+    
+    # Allies: power needed to unlock alliance slots
+    first_ally_power: 6   # Need 6 power for first ally
+    ally_power_increment: 4  # Each additional ally needs +4 more power
+    
+    # Claims: power needed for claiming
+    claims_per_power: 2   # Every 2 power allows 1 claim
+    
+    # Future features (for expansion)
+    special_abilities:
+      faction_vault: 10     # Power needed for faction vault
+      faction_warps: 15     # Power needed for multiple warps
+      faction_shop: 20      # Power needed for faction shop
+      raid_protection: 25   # Power needed for raid protection
+
+# === TRADITIONAL LIMITS (as backup/maximum) ===
+limits:
+  # Maximum members (if power system allows more)
+  max_members: 20
+  
+  # Maximum allies (if power system allows more)  
+  max_allies: 5
+  
+  # Maximum claims per faction
+  max_claims: 50
+
+# Worlds where players can use faction features
+faction_worlds: ["world", "world_nether", "world_the_end"]
+
+# Cooldown times (in seconds)
+cooldowns:
+  faction_create: 3600    # 1 hour
+  faction_join: 1800      # 30 minutes  
+  faction_home: 60        # 1 minute
+  faction_teleport: 10    # 10 seconds
+
+# Freeze system
+freeze_system:
+  # Time in seconds a faction is frozen after being raided
+  freeze_time: 3600       # 1 hour
+  
+  # Power threshold for being raidable (percentage of max power)
+  raidable_threshold: 0.3  # 30% of max power
+
+# World protection
+world_protection:
+  # Distance from spawn where claiming is not allowed
+  spawn_protection_radius: 200
+  
+  # Enable faction-vs-faction combat
+  enable_faction_pvp: true
+  
+  # Allow claiming in these worlds
+  claiming_worlds: ["world"]
+
+# Economy settings
+economy_settings:
+  # Cost to create a faction
+  faction_create_cost: 10000
+  
+  # Cost per claim
+  claim_cost: 5000
+  
+  # Cost to set faction home
+  home_set_cost: 1000
+  
+  # Ally request cost
+  ally_request_cost: 2500
+
+# Database configuration
+database:
+  # The database type. "sqlite" and "mysql" are supported.
+  type: sqlite
+
+  # Edit these settings only if you choose "sqlite".
+  sqlite:
+    # The file name of the database in the plugin data folder.
+    file: ultimate_factions.db
+    
+  # Edit these settings only if you choose "mysql".
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    # Avoid using the "root" user for security reasons.
+    username: root
+    password: ""
+    schema: ultimatefactions
+    
+  # The maximum number of simultaneous SQL queries
+  worker_limit: 2
+
+# Advanced features
+advanced_features:
+  # Enable debug mode
+  debug: false
+  
+  # Enable metrics/statistics
+  metrics: true
+  
+  # Enable automatic updates check
+  update_check: true
+  
+  # Faction prefixes in chat
+  faction_chat_prefix: true
+  
+  # Show faction info in tab list
+  faction_tab_list: true
