@@ -41,14 +41,15 @@ class Main extends PluginBase {
     private ?FactionManager $factionManager = null;
     private ?PlayerManager $playerManager = null;
     private ?ClaimManager $claimManager = null;
+    private ?PowerManager $powerManager = null;
     private ?ScoreHudManager $scoreHudManager = null;
-    private $powerManager = null; // ← ESTA LÍNEA SE AGREGA AQUÍ
     
     // Basic storage for cooldowns until CooldownManager is created
     private array $cooldowns = [];
     
     private array $borderPlayers = [];
     private bool $crashed = false;
+    private bool $managersInitialized = false;
     
     public function onLoad(): void {
         self::$instance = $this;
@@ -78,7 +79,7 @@ class Main extends PluginBase {
             // Register commands
             $this->registerCommands();
             
-            // Register event listeners
+            // Register event listeners (only after managers are initialized)
             $this->registerListeners();
             
             // Start scheduled tasks
@@ -146,9 +147,8 @@ class Main extends PluginBase {
         $economyConfig = $this->getConfig()->get("economy", []);
         $provider = $economyConfig["provider"] ?? "economyapi";
         
-        // Fix: Pass array instead of string to getProvider()
         $this->economyProvider = libPiggyEconomy::getProvider([
-            "provider" => $provider
+            "provider" => "economyapi"
         ]);
         
         if ($this->economyProvider === null) {
@@ -157,90 +157,121 @@ class Main extends PluginBase {
     }
     
     private function initManagers(): void {
-        // Initialize basic cooldown management
-        $this->loadCooldowns();
-        
-        // Initialize PowerManager
-        if (class_exists("Phoenix\\ultimatefactions\\managers\\PowerManager")) {
-            $this->powerManager = new PowerManager($this);
-        }
-        
-        // Initialize ClaimManager
-        if (class_exists("Phoenix\\ultimatefactions\\managers\\ClaimManager")) {
+        try {
+            // Initialize basic cooldown management
+            $this->loadCooldowns();
+            
+            // Initialize ClaimManager first (less dependencies)
             $this->claimManager = new ClaimManager($this);
-        }
-        
-        // Initialize PlayerManager
-        if (class_exists("Phoenix\\ultimatefactions\\managers\\PlayerManager")) {
-            $this->playerManager = new PlayerManager($this);
-        }
-        
-        // Initialize FactionManager
-        if (class_exists("Phoenix\\ultimatefactions\\managers\\FactionManager")) {
-            $this->factionManager = new FactionManager($this);
-        }
-        
-        // Initialize ScoreHud if available
-        if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudManager")) {
-            $this->scoreHudManager = ScoreHudManager::getInstance();
-        }
-        
-        // Initialize managers with database
-        if ($this->factionManager !== null) {
-            $this->factionManager->init();
-        }
-        if ($this->playerManager !== null) {
-            $this->playerManager->init();
-        }
-        if ($this->claimManager !== null) {
             $this->claimManager->init();
+            $this->getLogger()->info(TextFormat::GREEN . "ClaimManager initialized successfully!");
+            
+            // Initialize PlayerManager
+            $this->playerManager = new PlayerManager($this);
+            $this->playerManager->init();
+            $this->getLogger()->info(TextFormat::GREEN . "PlayerManager initialized successfully!");
+            
+            // Initialize FactionManager (depends on PlayerManager)
+            $this->factionManager = new FactionManager($this);
+            $this->factionManager->init();
+            $this->getLogger()->info(TextFormat::GREEN . "FactionManager initialized successfully!");
+            
+            // Initialize PowerManager if class exists
+            if (class_exists("Phoenix\\ultimatefactions\\managers\\PowerManager")) {
+                $this->powerManager = new PowerManager($this);
+                $this->getLogger()->info(TextFormat::GREEN . "PowerManager initialized successfully!");
+            } else {
+                $this->getLogger()->warning("PowerManager class not found, skipping initialization.");
+            }
+            
+            // Initialize ScoreHud if available
+            if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudManager")) {
+                $this->scoreHudManager = ScoreHudManager::getInstance();
+                $this->getLogger()->info(TextFormat::GREEN . "ScoreHudManager initialized successfully!");
+            } else {
+                $this->getLogger()->info(TextFormat::YELLOW . "ScoreHudManager not available.");
+            }
+            
+            $this->managersInitialized = true;
+            $this->getLogger()->info(TextFormat::GREEN . "All managers initialized successfully!");
+            
+        } catch (Exception $e) {
+            $this->getLogger()->error("Failed to initialize managers: " . $e->getMessage());
+            throw $e;
         }
     }
     
     private function registerCommands(): void {
         $commandMap = $this->getServer()->getCommandMap();
         
-        if (class_exists("Phoenix\\ultimatefactions\\commands\\FactionCommand")) {
-            $commandMap->register("ultimatefactions", new FactionCommand($this));
-        }
-        if (class_exists("Phoenix\\ultimatefactions\\commands\\FactionAdminCommand")) {
-            $commandMap->register("ultimatefactionsadmin", new FactionAdminCommand($this));
+        try {
+            if (class_exists("Phoenix\\ultimatefactions\\commands\\FactionCommand")) {
+                $commandMap->register("ultimatefactions", new FactionCommand($this));
+                $this->getLogger()->info(TextFormat::GREEN . "FactionCommand registered successfully!");
+            } else {
+                $this->getLogger()->warning("FactionCommand class not found.");
+            }
+            
+            if (class_exists("Phoenix\\ultimatefactions\\commands\\FactionAdminCommand")) {
+                $commandMap->register("ultimatefactionsadmin", new FactionAdminCommand($this));
+                $this->getLogger()->info(TextFormat::GREEN . "FactionAdminCommand registered successfully!");
+            } else {
+                $this->getLogger()->warning("FactionAdminCommand class not found.");
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->error("Failed to register commands: " . $e->getMessage());
         }
     }
     
     private function registerListeners(): void {
+        // Only register listeners after managers are initialized
+        if (!$this->managersInitialized) {
+            $this->getLogger()->error("Cannot register listeners: Managers not initialized!");
+            return;
+        }
+        
         $pluginManager = $this->getServer()->getPluginManager();
         
-        if (class_exists("Phoenix\\ultimatefactions\\listeners\\PlayerListener")) {
-            $pluginManager->registerEvents(new PlayerListener($this), $this);
-        }
-        if (class_exists("Phoenix\\ultimatefactions\\listeners\\BlockListener")) {
-            $pluginManager->registerEvents(new BlockListener($this), $this);
-        }
-        if (class_exists("Phoenix\\ultimatefactions\\listeners\\EntityListener")) {
-            $pluginManager->registerEvents(new EntityListener($this), $this);
-        }
-        if (class_exists("Phoenix\\ultimatefactions\\listeners\\ChatListener")) {
-            $pluginManager->registerEvents(new ChatListener($this), $this);
-        }
-        
-        // Register ScoreHud listener AFTER managers are initialized
-        $this->registerScoreHudListener();
-    }
-    
-    private function registerScoreHudListener(): void {
-        // Only register ScoreHud listener if all required managers are available
-        if ($this->scoreHudManager !== null && 
-            $this->scoreHudManager->scoreHudExists() && 
-            $this->playerManager !== null && 
-            $this->factionManager !== null) {
-            
-            if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudListener")) {
-                $this->getServer()->getPluginManager()->registerEvents(new ScoreHudListener($this), $this);
-                $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
+        try {
+            if (class_exists("Phoenix\\ultimatefactions\\listeners\\PlayerListener")) {
+                $pluginManager->registerEvents(new PlayerListener($this), $this);
+                $this->getLogger()->info(TextFormat::GREEN . "PlayerListener registered successfully!");
+            } else {
+                $this->getLogger()->warning("PlayerListener class not found.");
             }
-        } else {
-            $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found, incompatible version, or required managers not available. ScoreHud integration disabled.");
+            
+            if (class_exists("Phoenix\\ultimatefactions\\listeners\\BlockListener")) {
+                $pluginManager->registerEvents(new BlockListener($this), $this);
+                $this->getLogger()->info(TextFormat::GREEN . "BlockListener registered successfully!");
+            } else {
+                $this->getLogger()->warning("BlockListener class not found.");
+            }
+            
+            if (class_exists("Phoenix\\ultimatefactions\\listeners\\EntityListener")) {
+                $pluginManager->registerEvents(new EntityListener($this), $this);
+                $this->getLogger()->info(TextFormat::GREEN . "EntityListener registered successfully!");
+            } else {
+                $this->getLogger()->warning("EntityListener class not found.");
+            }
+            
+            if (class_exists("Phoenix\\ultimatefactions\\listeners\\ChatListener")) {
+                $pluginManager->registerEvents(new ChatListener($this), $this);
+                $this->getLogger()->info(TextFormat::GREEN . "ChatListener registered successfully!");
+            } else {
+                $this->getLogger()->warning("ChatListener class not found.");
+            }
+            
+            // Register ScoreHud listener if ScoreHud is available
+            if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+                if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudListener")) {
+                    $pluginManager->registerEvents(new ScoreHudListener(), $this);
+                    $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
+                }
+            } else {
+                $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found or incompatible version. ScoreHud integration disabled.");
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->error("Failed to register listeners: " . $e->getMessage());
         }
     }
     
@@ -264,7 +295,9 @@ class Main extends PluginBase {
         // Task to clean expired invites
         $this->getScheduler()->scheduleRepeatingTask(
             new ClosureTask(function(): void {
-                $this->database->executeGeneric("data.cleanExpiredInvites");
+                if (isset($this->database)) {
+                    $this->database->executeGeneric("data.cleanExpiredInvites");
+                }
             }),
             20 * 60 * 5 // Every 5 minutes
         );
@@ -532,7 +565,24 @@ class Main extends PluginBase {
         }
     }
     
-    // Getters
+    // Validation methods to ensure managers are available
+    public function isManagersInitialized(): bool {
+        return $this->managersInitialized;
+    }
+    
+    public function isPlayerManagerAvailable(): bool {
+        return $this->playerManager !== null && $this->managersInitialized;
+    }
+    
+    public function isFactionManagerAvailable(): bool {
+        return $this->factionManager !== null && $this->managersInitialized;
+    }
+    
+    public function isClaimManagerAvailable(): bool {
+        return $this->claimManager !== null && $this->managersInitialized;
+    }
+    
+    // Getters with null checks
     public static function getInstance(): Main {
         return self::$instance;
     }
@@ -565,7 +615,7 @@ class Main extends PluginBase {
         return $this->claimManager;
     }
     
-    public function getPowerManager() {
+    public function getPowerManager(): ?PowerManager {
         return $this->powerManager;
     }
     
