@@ -42,6 +42,7 @@ class Main extends PluginBase {
     private ?PlayerManager $playerManager = null;
     private ?ClaimManager $claimManager = null;
     private ?ScoreHudManager $scoreHudManager = null;
+    private $powerManager = null; // ← ESTA LÍNEA SE AGREGA AQUÍ
     
     // Basic storage for cooldowns until CooldownManager is created
     private array $cooldowns = [];
@@ -145,8 +146,9 @@ class Main extends PluginBase {
         $economyConfig = $this->getConfig()->get("economy", []);
         $provider = $economyConfig["provider"] ?? "economyapi";
         
+        // Fix: Pass array instead of string to getProvider()
         $this->economyProvider = libPiggyEconomy::getProvider([
-            "provider" => "economyapi"
+            "provider" => $provider
         ]);
         
         if ($this->economyProvider === null) {
@@ -222,14 +224,23 @@ class Main extends PluginBase {
             $pluginManager->registerEvents(new ChatListener($this), $this);
         }
         
-        // Register ScoreHud listener if ScoreHud is available
-        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+        // Register ScoreHud listener AFTER managers are initialized
+        $this->registerScoreHudListener();
+    }
+    
+    private function registerScoreHudListener(): void {
+        // Only register ScoreHud listener if all required managers are available
+        if ($this->scoreHudManager !== null && 
+            $this->scoreHudManager->scoreHudExists() && 
+            $this->playerManager !== null && 
+            $this->factionManager !== null) {
+            
             if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudListener")) {
-                $pluginManager->registerEvents(new ScoreHudListener(), $this);
+                $this->getServer()->getPluginManager()->registerEvents(new ScoreHudListener($this), $this);
                 $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
             }
         } else {
-            $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found or incompatible version. ScoreHud integration disabled.");
+            $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found, incompatible version, or required managers not available. ScoreHud integration disabled.");
         }
     }
     
@@ -554,7 +565,7 @@ class Main extends PluginBase {
         return $this->claimManager;
     }
     
-    public function getPowerManager(): ?PowerManager {
+    public function getPowerManager() {
         return $this->powerManager;
     }
     
