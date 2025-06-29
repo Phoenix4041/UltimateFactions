@@ -31,22 +31,19 @@ use Phoenix\ultimatefactions\managers\PlayerManager;
 use Phoenix\ultimatefactions\managers\ClaimManager;
 use Phoenix\ultimatefactions\managers\PowerManager;
 use Phoenix\ultimatefactions\managers\CooldownManager;
-use Phoenix\ultimatefactions\utils\ConfigManager;
-use Phoenix\ultimatefactions\utils\MessageManager;
 use Exception;
 
 class Main extends PluginBase {
     
     private static Main $instance;
     private DataConnector $database;
-    private EconomyProvider $economyProvider;
-    private ConfigManager $configManager;
-    private MessageManager $messageManager;
-    private FactionManager $factionManager;
-    private PlayerManager $playerManager;
-    private ClaimManager $claimManager;
-    private PowerManager $powerManager;
-    private CooldownManager $cooldownManager;
+    private ?EconomyProvider $economyProvider = null;
+    private Config $messagesConfig;
+    private ?FactionManager $factionManager = null;
+    private ?PlayerManager $playerManager = null;
+    private ?ClaimManager $claimManager = null;
+    private ?PowerManager $powerManager = null;
+    private ?CooldownManager $cooldownManager = null;
     private ?ScoreHudManager $scoreHudManager = null;
     
     private array $borderPlayers = [];
@@ -64,9 +61,8 @@ class Main extends PluginBase {
             $this->saveDefaultConfig();
             $this->saveResource("messages.yml");
             
-            // Initialize configuration and message managers
-            $this->configManager = new ConfigManager($this);
-            $this->messageManager = new MessageManager($this);
+            // Initialize messages config
+            $this->initMessages();
             
             // Initialize database
             $this->initDatabase();
@@ -91,6 +87,7 @@ class Main extends PluginBase {
             
         } catch (Exception $e) {
             $this->getLogger()->error("Failed to enable UltimateFactions: " . $e->getMessage());
+            $this->getLogger()->error("Stack trace: " . $e->getTraceAsString());
             $this->getServer()->getPluginManager()->disablePlugin($this);
         }
     }
@@ -119,8 +116,16 @@ class Main extends PluginBase {
         }
     }
     
+    private function initMessages(): void {
+        $this->messagesConfig = new Config($this->getDataFolder() . "messages.yml", Config::YAML);
+    }
+    
     private function initDatabase(): void {
-        $dbConfig = $this->getConfig()->get("database", []);
+        $dbConfig = $this->getConfig()->get("database", [
+            "type" => "sqlite",
+            "sqlite" => ["file" => "database.sqlite"],
+            "worker-limit" => 1
+        ]);
         
         $this->database = libasynql::create($this, $dbConfig, [
             "sqlite" => "database/sqlite.sql",
@@ -139,54 +144,98 @@ class Main extends PluginBase {
     }
     
     private function initEconomy(): void {
-        libPiggyEconomy::init();
-        $economyConfig = $this->getConfig()->get("economy", []);
-        $provider = $economyConfig["provider"] ?? "economyapi";
-        
-        $this->economyProvider = libPiggyEconomy::getProvider($provider);
-        
-        if ($this->economyProvider === null) {
-            throw new Exception("Economy provider '$provider' not found!");
+        try {
+            if (!$this->getServer()->getPluginManager()->getPlugin("libPiggyEconomy")) {
+                $this->getLogger()->warning("libPiggyEconomy not found. Economy features disabled.");
+                return;
+            }
+            
+            libPiggyEconomy::init();
+            $economyConfig = $this->getConfig()->get("economy", []);
+            $provider = $economyConfig["provider"] ?? "economyapi";
+            
+            $this->economyProvider = libPiggyEconomy::getProvider($provider);
+            
+            if ($this->economyProvider === null) {
+                $this->getLogger()->warning("Economy provider '$provider' not found. Economy features disabled.");
+            } else {
+                $this->getLogger()->info("Economy provider '$provider' initialized successfully.");
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->warning("Failed to initialize economy: " . $e->getMessage());
         }
     }
     
     private function initManagers(): void {
-        $this->cooldownManager = new CooldownManager($this);
-        $this->powerManager = new PowerManager($this);
-        $this->claimManager = new ClaimManager($this);
-        $this->playerManager = new PlayerManager($this);
-        $this->factionManager = new FactionManager($this);
-        
-        // Initialize ScoreHud if available
-        $this->scoreHudManager = ScoreHudManager::getInstance();
-        
-        // Initialize managers with database
-        $this->factionManager->init();
-        $this->playerManager->init();
-        $this->claimManager->init();
+        try {
+            $this->cooldownManager = new CooldownManager($this);
+            $this->powerManager = new PowerManager($this);
+            $this->claimManager = new ClaimManager($this);
+            $this->playerManager = new PlayerManager($this);
+            $this->factionManager = new FactionManager($this);
+            
+            // Initialize ScoreHud if available
+            if (class_exists("Phoenix\ultimatefactions\addons\scorehud\ScoreHudManager")) {
+                $this->scoreHudManager = ScoreHudManager::getInstance();
+            }
+            
+            // Initialize managers with database
+            $this->factionManager->init();
+            $this->playerManager->init();
+            $this->claimManager->init();
+            
+        } catch (Exception $e) {
+            throw new Exception("Failed to initialize managers: " . $e->getMessage());
+        }
     }
     
     private function registerCommands(): void {
         $commandMap = $this->getServer()->getCommandMap();
         
-        $commandMap->register("ultimatefactions", new FactionCommand($this));
-        $commandMap->register("ultimatefactionsadmin", new FactionAdminCommand($this));
+        try {
+            if (class_exists("Phoenix\ultimatefactions\commands\FactionCommand")) {
+                $commandMap->register("ultimatefactions", new FactionCommand($this));
+            }
+            
+            if (class_exists("Phoenix\ultimatefactions\commands\FactionAdminCommand")) {
+                $commandMap->register("ultimatefactionsadmin", new FactionAdminCommand($this));
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->warning("Failed to register some commands: " . $e->getMessage());
+        }
     }
     
     private function registerListeners(): void {
         $pluginManager = $this->getServer()->getPluginManager();
         
-        $pluginManager->registerEvents(new PlayerListener($this), $this);
-        $pluginManager->registerEvents(new BlockListener($this), $this);
-        $pluginManager->registerEvents(new EntityListener($this), $this);
-        $pluginManager->registerEvents(new ChatListener($this), $this);
-        
-        // Register ScoreHud listener if ScoreHud is available
-        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
-            $pluginManager->registerEvents(new ScoreHudListener(), $this);
-            $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
-        } else {
-            $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found or incompatible version. ScoreHud integration disabled.");
+        try {
+            if (class_exists("Phoenix\ultimatefactions\listeners\PlayerListener")) {
+                $pluginManager->registerEvents(new PlayerListener($this), $this);
+            }
+            
+            if (class_exists("Phoenix\ultimatefactions\listeners\BlockListener")) {
+                $pluginManager->registerEvents(new BlockListener($this), $this);
+            }
+            
+            if (class_exists("Phoenix\ultimatefactions\listeners\EntityListener")) {
+                $pluginManager->registerEvents(new EntityListener($this), $this);
+            }
+            
+            if (class_exists("Phoenix\ultimatefactions\listeners\ChatListener")) {
+                $pluginManager->registerEvents(new ChatListener($this), $this);
+            }
+            
+            // Register ScoreHud listener if ScoreHud is available
+            if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+                if (class_exists("Phoenix\ultimatefactions\addons\scorehud\ScoreHudListener")) {
+                    $pluginManager->registerEvents(new ScoreHudListener(), $this);
+                    $this->getLogger()->info(TextFormat::GREEN . "ScoreHud integration enabled!");
+                }
+            } else {
+                $this->getLogger()->info(TextFormat::YELLOW . "ScoreHud not found or incompatible version. ScoreHud integration disabled.");
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->warning("Failed to register some listeners: " . $e->getMessage());
         }
     }
     
@@ -210,7 +259,11 @@ class Main extends PluginBase {
         // Task to clean expired invites
         $this->getScheduler()->scheduleRepeatingTask(
             new ClosureTask(function(): void {
-                $this->database->executeGeneric("data.cleanExpiredInvites");
+                try {
+                    $this->database->executeGeneric("data.cleanExpiredInvites");
+                } catch (Exception $e) {
+                    $this->getLogger()->warning("Failed to clean expired invites: " . $e->getMessage());
+                }
             }),
             20 * 60 * 5 // Every 5 minutes
         );
@@ -235,32 +288,38 @@ class Main extends PluginBase {
     }
     
     private function updateFactionFreezeStatus(): void {
-        foreach ($this->factionManager->getFactions() as $faction) {
-            if ($faction->isFreeze()) {
-                $freezeTime = $faction->getFreezeTime();
-                $currentTime = time();
-                
-                if ($freezeTime <= $currentTime) {
-                    $faction->setFreeze(false);
-                    $faction->setFreezeTime(0);
+        if ($this->factionManager === null) return;
+        
+        try {
+            foreach ($this->factionManager->getFactions() as $faction) {
+                if ($faction->isFreeze()) {
+                    $freezeTime = $faction->getFreezeTime();
+                    $currentTime = time();
                     
-                    // Notify faction members
-                    $message = $this->messageManager->getMessage("faction_raid_protection");
-                    $faction->broadcastMessage($message);
-                    
-                    $this->factionManager->updateFaction($faction);
-                    
-                    // Update ScoreHud for faction members
-                    if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
-                        foreach ($faction->getMembers() as $memberName) {
-                            $player = $this->getServer()->getPlayerExact($memberName);
-                            if ($player instanceof Player && $player->isOnline()) {
-                                $this->scoreHudManager->updatePlayerFactionFreezeTimeTag($player, null);
+                    if ($freezeTime <= $currentTime) {
+                        $faction->setFreeze(false);
+                        $faction->setFreezeTime(0);
+                        
+                        // Notify faction members
+                        $message = $this->getMessage("faction_raid_protection", "Your faction's raid protection has ended!");
+                        $faction->broadcastMessage($message);
+                        
+                        $this->factionManager->updateFaction($faction);
+                        
+                        // Update ScoreHud for faction members
+                        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+                            foreach ($faction->getMembers() as $memberName) {
+                                $player = $this->getServer()->getPlayerExact($memberName);
+                                if ($player instanceof Player && $player->isOnline()) {
+                                    $this->scoreHudManager->updatePlayerFactionFreezeTimeTag($player, null);
+                                }
                             }
                         }
                     }
                 }
             }
+        } catch (Exception $e) {
+            $this->getLogger()->warning("Error updating faction freeze status: " . $e->getMessage());
         }
     }
     
@@ -274,7 +333,11 @@ class Main extends PluginBase {
                 continue;
             }
             
-            $this->showChunkBorder($player);
+            try {
+                $this->showChunkBorder($player);
+            } catch (Exception $e) {
+                $this->getLogger()->debug("Error showing chunk border for {$playerName}: " . $e->getMessage());
+            }
         }
     }
     
@@ -283,12 +346,18 @@ class Main extends PluginBase {
             return;
         }
         
-        foreach ($this->getServer()->getOnlinePlayers() as $player) {
-            $this->scoreHudManager->updateAllPlayerTags($player);
+        try {
+            foreach ($this->getServer()->getOnlinePlayers() as $player) {
+                $this->scoreHudManager->updateAllPlayerTags($player);
+            }
+        } catch (Exception $e) {
+            $this->getLogger()->debug("Error updating ScoreHud: " . $e->getMessage());
         }
     }
     
     private function showChunkBorder(Player $player): void {
+        if ($this->claimManager === null) return;
+        
         $world = $player->getWorld();
         $pos = $player->getPosition();
         
@@ -319,7 +388,7 @@ class Main extends PluginBase {
     }
     
     private function getChunkBorderColor(Player $player, ?object $claim): Color {
-        if ($claim === null) {
+        if ($claim === null || $this->playerManager === null) {
             return new Color(255, 255, 255); // White for wilderness
         }
         
@@ -346,39 +415,51 @@ class Main extends PluginBase {
     
     private function saveAllData(): void {
         try {
-            $this->factionManager->saveAll();
-            $this->playerManager->saveAll();
-            $this->cooldownManager->save();
+            $this->factionManager?->saveAll();
+            $this->playerManager?->saveAll();
+            $this->cooldownManager?->save();
         } catch (Exception $e) {
             $this->getLogger()->warning("Failed to save data: " . $e->getMessage());
         }
     }
     
     public function reloadConfigs(): void {
-        $this->configManager->reload();
-        $this->messageManager->reload();
+        $this->reloadConfig();
+        $this->messagesConfig = new Config($this->getDataFolder() . "messages.yml", Config::YAML);
+    }
+    
+    public function getMessage(string $key, string $default = ""): string {
+        return $this->messagesConfig->get($key, $default);
     }
     
     // Methods for updating ScoreHud when actions occur
     public function updatePlayerScoreHud(Player $player): void {
         if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
-            $this->scoreHudManager->updateAllPlayerTags($player);
+            try {
+                $this->scoreHudManager->updateAllPlayerTags($player);
+            } catch (Exception $e) {
+                $this->getLogger()->debug("Error updating player ScoreHud: " . $e->getMessage());
+            }
         }
     }
     
     public function updateFactionMembersScoreHud(string $factionName): void {
-        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
+        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists() || $this->factionManager === null) {
             return;
         }
         
-        $faction = $this->factionManager->getFactionByName($factionName);
-        if ($faction === null) return;
-        
-        foreach ($faction->getMembers() as $memberName) {
-            $player = $this->getServer()->getPlayerExact($memberName);
-            if ($player instanceof Player && $player->isOnline()) {
-                $this->scoreHudManager->updateAllPlayerTags($player);
+        try {
+            $faction = $this->factionManager->getFactionByName($factionName);
+            if ($faction === null) return;
+            
+            foreach ($faction->getMembers() as $memberName) {
+                $player = $this->getServer()->getPlayerExact($memberName);
+                if ($player instanceof Player && $player->isOnline()) {
+                    $this->scoreHudManager->updateAllPlayerTags($player);
+                }
             }
+        } catch (Exception $e) {
+            $this->getLogger()->debug("Error updating faction members ScoreHud: " . $e->getMessage());
         }
     }
     
@@ -391,35 +472,27 @@ class Main extends PluginBase {
         return $this->database;
     }
     
-    public function getEconomyProvider(): EconomyProvider {
+    public function getEconomyProvider(): ?EconomyProvider {
         return $this->economyProvider;
     }
     
-    public function getConfigManager(): ConfigManager {
-        return $this->configManager;
-    }
-    
-    public function getMessageManager(): MessageManager {
-        return $this->messageManager;
-    }
-    
-    public function getFactionManager(): FactionManager {
+    public function getFactionManager(): ?FactionManager {
         return $this->factionManager;
     }
     
-    public function getPlayerManager(): PlayerManager {
+    public function getPlayerManager(): ?PlayerManager {
         return $this->playerManager;
     }
     
-    public function getClaimManager(): ClaimManager {
+    public function getClaimManager(): ?ClaimManager {
         return $this->claimManager;
     }
     
-    public function getPowerManager(): PowerManager {
+    public function getPowerManager(): ?PowerManager {
         return $this->powerManager;
     }
     
-    public function getCooldownManager(): CooldownManager {
+    public function getCooldownManager(): ?CooldownManager {
         return $this->cooldownManager;
     }
     
