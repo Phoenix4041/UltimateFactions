@@ -1,115 +1,4 @@
-// Methods for updating ScoreHud when actions occur
-    public function updatePlayerScoreHud(Player $player): void {
-        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
-            $this->scoreHudManager->updateAllPlayerTags($player);
-        }
-    }
-    
-    public function updateFactionMembersScoreHud(string $factionName): void {
-        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
-            return;
-        }
-        
-        if ($this->factionManager === null) {
-            return;
-        }
-        
-        $faction = $this->factionManager->getFactionByName($factionName);
-        if ($faction === null) return;
-        
-        foreach ($faction->getMembers() as $memberName) {
-            $player = $this->getServer()->getPlayerExact($memberName);
-            if ($player instanceof Player && $player->isOnline()) {
-                $this->scoreHudManager->updateAllPlayerTags($player);
-            }
-        }
-    }
-    
-    // Getters
-    public static function getInstance(): Main {
-        return self::$instance;
-    }
-    
-    public function getDatabase(): DataConnector {
-        return $this->database;
-    }
-    
-    public function getEconomyProvider(): EconomyProvider {
-        return $this->economyProvider;
-    }
-    
-    public function getConfigManager(): ?Config {
-        return $this->configManager;
-    }
-    
-    public function getMessageManager(): ?Config {
-        return $this->messageManager;
-    }
-    
-    public function getFactionManager(): ?FactionManager {
-        return $this->factionManager;
-    }
-    
-    public function getPlayerManager(): ?PlayerManager {
-        return $this->playerManager;
-    }
-    
-    public function getClaimManager(): ?ClaimManager {
-        return $this->claimManager;
-    }
-    
-    public function getPowerManager(): ?PowerManager {
-        return $this->powerManager;
-    }
-    
-    public function getCooldownManager(): Main {
-        // Return self since we're handling cooldowns directly in Main class
-        return $this;
-    }
-    
-    public function getScoreHudManager(): ?ScoreHudManager {
-        return $this->scoreHudManager;
-    }
-    
-    // Chunk border management
-    public function enableChunkBorder(string $playerName): void {
-        $this->borderPlayers[$playerName] = true;
-    }
-    
-    public function disableChunkBorder(string $playerName): void {
-        $this->borderPlayers[$playerName] = false;
-    }
-    
-    public function isChunkBorderEnabled(string $playerName): bool {
-        return $this->borderPlayers[$playerName] ?? false;
-    }
-    
-    public function removePlayerFromBorderList(string $playerName): void {
-        unset($this->borderPlayers[$playerName]);
-    }
-}    private function updateChunkBorders(): void {
-        foreach ($this->borderPlayers as $playerName => $enabled) {
-            if (!$enabled) continue;
-            
-            $player = $this->getServer()->getPlayerExact($playerName);
-            if (!$player instanceof Player || !$player->isOnline()) {
-                unset($this->borderPlayers[$playerName]);
-                continue;
-            }
-            
-            $this->showChunkBorder($player);
-        }
-    }
-    
-    private function updateAllPlayersScoreHud(): void {
-        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
-            return;
-        }
-        
-        foreach ($this->getServer()->getOnlinePlayers() as $player) {
-            $this->scoreHudManager->updateAllPlayerTags($player);
-        }
-    }<?php
+<?php
 
 declare(strict_types=1);
 
@@ -129,18 +18,17 @@ use pocketmine\world\particle\DustParticle;
 use pocketmine\color\Color;
 use poggit\libasynql\DataConnector;
 use poggit\libasynql\libasynql;
-use Phoenix\ultimatefactions\commands\FactionCommand;
-use Phoenix\ultimatefactions\commands\FactionAdminCommand;
+use Phoenix\ultimatefactions\command\FactionCommand;
+use Phoenix\ultimatefactions\command\FactionAdminCommand;
 use Phoenix\ultimatefactions\listeners\PlayerListener;
 use Phoenix\ultimatefactions\listeners\BlockListener;
 use Phoenix\ultimatefactions\listeners\EntityListener;
 use Phoenix\ultimatefactions\listeners\ChatListener;
 use Phoenix\ultimatefactions\addons\scorehud\ScoreHudListener;
 use Phoenix\ultimatefactions\addons\scorehud\ScoreHudManager;
-use Phoenix\ultimatefactions\managers\FactionManager;
-use Phoenix\ultimatefactions\managers\PlayerManager;
-use Phoenix\ultimatefactions\managers\ClaimManager;
-use Phoenix\ultimatefactions\managers\PowerManager;
+use Phoenix\ultimatefactions\faction\FactionManager;
+use Phoenix\ultimatefactions\player\PlayerManager;
+use Phoenix\ultimatefactions\claims\ClaimManager;
 use Exception;
 
 class Main extends PluginBase {
@@ -153,7 +41,6 @@ class Main extends PluginBase {
     private ?FactionManager $factionManager = null;
     private ?PlayerManager $playerManager = null;
     private ?ClaimManager $claimManager = null;
-    private ?PowerManager $powerManager = null;
     private ?ScoreHudManager $scoreHudManager = null;
     
     // Basic storage for cooldowns until CooldownManager is created
@@ -290,7 +177,9 @@ class Main extends PluginBase {
         }
         
         // Initialize ScoreHud if available
-        $this->scoreHudManager = ScoreHudManager::getInstance();
+        if (class_exists("Phoenix\\ultimatefactions\\addons\\scorehud\\ScoreHudManager")) {
+            $this->scoreHudManager = ScoreHudManager::getInstance();
+        }
         
         // Initialize managers with database
         if ($this->factionManager !== null) {
@@ -423,6 +312,30 @@ class Main extends PluginBase {
                     }
                 }
             }
+        }
+    }
+    
+    private function updateChunkBorders(): void {
+        foreach ($this->borderPlayers as $playerName => $enabled) {
+            if (!$enabled) continue;
+            
+            $player = $this->getServer()->getPlayerExact($playerName);
+            if (!$player instanceof Player || !$player->isOnline()) {
+                unset($this->borderPlayers[$playerName]);
+                continue;
+            }
+            
+            $this->showChunkBorder($player);
+        }
+    }
+    
+    private function updateAllPlayersScoreHud(): void {
+        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
+            return;
+        }
+        
+        foreach ($this->getServer()->getOnlinePlayers() as $player) {
+            $this->scoreHudManager->updateAllPlayerTags($player);
         }
     }
     
@@ -578,3 +491,94 @@ class Main extends PluginBase {
             $this->messageManager->reload();
         }
     }
+    
+    // Methods for updating ScoreHud when actions occur
+    public function updatePlayerScoreHud(Player $player): void {
+        if ($this->scoreHudManager !== null && $this->scoreHudManager->scoreHudExists()) {
+            $this->scoreHudManager->updateAllPlayerTags($player);
+        }
+    }
+    
+    public function updateFactionMembersScoreHud(string $factionName): void {
+        if ($this->scoreHudManager === null || !$this->scoreHudManager->scoreHudExists()) {
+            return;
+        }
+        
+        if ($this->factionManager === null) {
+            return;
+        }
+        
+        $faction = $this->factionManager->getFactionByName($factionName);
+        if ($faction === null) return;
+        
+        foreach ($faction->getMembers() as $memberName) {
+            $player = $this->getServer()->getPlayerExact($memberName);
+            if ($player instanceof Player && $player->isOnline()) {
+                $this->scoreHudManager->updateAllPlayerTags($player);
+            }
+        }
+    }
+    
+    // Getters
+    public static function getInstance(): Main {
+        return self::$instance;
+    }
+    
+    public function getDatabase(): DataConnector {
+        return $this->database;
+    }
+    
+    public function getEconomyProvider(): EconomyProvider {
+        return $this->economyProvider;
+    }
+    
+    public function getConfigManager(): ?Config {
+        return $this->configManager;
+    }
+    
+    public function getMessageManager(): ?Config {
+        return $this->messageManager;
+    }
+    
+    public function getFactionManager(): ?FactionManager {
+        return $this->factionManager;
+    }
+    
+    public function getPlayerManager(): ?PlayerManager {
+        return $this->playerManager;
+    }
+    
+    public function getClaimManager(): ?ClaimManager {
+        return $this->claimManager;
+    }
+    
+    public function getPowerManager(): ?PowerManager {
+        return $this->powerManager;
+    }
+    
+    public function getCooldownManager(): Main {
+        // Return self since we're handling cooldowns directly in Main class
+        return $this;
+    }
+    
+    public function getScoreHudManager(): ?ScoreHudManager {
+        return $this->scoreHudManager;
+    }
+    
+    // Chunk border management
+    public function enableChunkBorder(string $playerName): void {
+        $this->borderPlayers[$playerName] = true;
+    }
+    
+    public function disableChunkBorder(string $playerName): void {
+        $this->borderPlayers[$playerName] = false;
+    }
+    
+    public function isChunkBorderEnabled(string $playerName): bool {
+        return $this->borderPlayers[$playerName] ?? false;
+    }
+    
+    public function removePlayerFromBorderList(string $playerName): void {
+        unset($this->borderPlayers[$playerName]);
+    }
+}
