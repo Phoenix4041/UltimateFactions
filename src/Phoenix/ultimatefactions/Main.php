@@ -145,7 +145,9 @@ class Main extends PluginBase {
         $economyConfig = $this->getConfig()->get("economy", []);
         $provider = $economyConfig["provider"] ?? "economyapi";
         
-        $this->economyProvider = libPiggyEconomy::getProvider($provider);
+        $this->economyProvider = libPiggyEconomy::getProvider([
+            "provider" => "economyapi"
+        ]);
         
         if ($this->economyProvider === null) {
             throw new Exception("Economy provider '$provider' not found!");
